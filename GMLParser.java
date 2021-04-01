@@ -56,16 +56,138 @@ public class GMLParser{
             return new String(chars);
 
     }
-
-    private static int countVertice(StringTokenizer dag)
+    
+    private static int totalNode(StringTokenizer dag)
     {
-        int count = 0;
+        int countNode = 0;
         while(dag.hasMoreTokens() )
         {
             if(dag.nextToken().equals("node"))
-                count ++;
+            {
+               countNode++; 
+            }
+        } 
+        return countNode;
+        
+    }
+    
+    private static int totalProc(StringTokenizer dag)
+    {
+        int nbProc = 0;
+        while(dag.hasMoreTokens() )
+        {
+            String token = dag.nextToken();
+            if(token.equals("nbproc"))
+            {
+               nbProc = Integer.parseInt(dag.nextToken());
+              
+            }
+        } 
+        return nbProc;
+        
+    }    
+
+    private static Float[][] costMatrix(Integer v,Integer proc,StringTokenizer dag)
+    {
+            Float [][] costMatrix = new Float[v][proc];
+            char[] token;
+            
+            int countRow = 0;
+            int countColumn = 0;
+        
+        while(dag.hasMoreTokens() )
+        {
+ 
+            if(dag.nextToken().equals("costmatrix"))
+            {
+                
+                while(dag.hasMoreTokens() )
+                {
+                    token = dag.nextToken().toCharArray();
+                    StringBuffer sb = new StringBuffer();
+                    if(token[0]=='"' && token[1]=='[')
+                    {
+
+                        for(int i=3;i<=token.length-1;i++)
+                        {
+                            if(token[i]==']')
+                            {
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString());                                
+                                countColumn = 0;
+                                break;
+                            }
+                            else if(token[i]==',')
+                            { 
+                                
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString());
+                                countColumn++;
+                                break;
+                            }
+                            else sb.append(token[i]);
+                        }
+
+                        
+                    }
+                    else if(token[0]=='[')
+                    {
+                        countRow++;
+                        countColumn = 0;
+                        for(int i=1;i<=token.length-1;i++)
+                        {
+                            if(token[i]==']')
+                            {
+                                
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                countColumn = 0;
+                                break;
+                            }
+                            else if(token[i]==',')
+                            {
+                               
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                countColumn++;
+                                break;
+                            }
+                            else sb.append(token[i]);
+                        }
+
+                        
+                    }
+                    else
+                    {
+                        for(int i=0;i<=token.length-1;i++)
+                        {
+                            if(token[i]==']')
+                            {
+                               
+                                
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                countColumn = 0;
+                                break;
+                            }
+                            else if(token[i]==',')
+                            {
+                                
+                                if(countRow<v && countColumn < proc )
+                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                countColumn++;
+                                break;
+                            }
+                            else sb.append(token[i]);
+                        }
+
+                     
+                    }                    
+                }
+                  break;  
+            }
         }
-        return count;    
+        return costMatrix;    
        
     }
 
@@ -141,7 +263,16 @@ public class GMLParser{
         {
        
             content = readFile(myGmlFIle,Charset.forName("ISO-8859-1"));
-
+            StringTokenizer st = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+            
+            int v = totalNode(st);
+            StringTokenizer st1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+            int p = totalProc(st1);
+           
+           System.out.println("Total tasks/nodes: "+v);
+           System.out.println("Total processors: "+p);
+           StringTokenizer st2 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+           System.out.println("yes "+costMatrix(v,p,st2)[3][5]);
            // content = readFile(myGmlFIle, StandardCharsets.UTF_8);
            char[] contents = content.toCharArray();
            Stack<Character> myStack = new Stack<Character>(); 
@@ -191,9 +322,9 @@ public class GMLParser{
                }
            }
            
-           System.out.println("Edges size : "+edges.size());
-            Graph myDag = parsedDag(24,edges);
-            System.out.print("My Parsed DAG IS : \n"+myDag);
+           System.out.println("Node size : "+nodes.size()+" Edges size : "+edges.size());
+           Graph myDag = parsedDag(nodes.size()+1,edges);
+           System.out.print("My Parsed DAG IS : \n"+myDag);
             
         }
         catch(IOException ie)
