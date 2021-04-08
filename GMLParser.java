@@ -1,46 +1,23 @@
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import mygraph.Graph;
 import mygraph.SET;
+import mygraph.PEFT;
 import java.util.*;
 
-class Node{
-    private Integer id;
-    private String label;
-    
-    public Node(Integer id, String label)
-    {
-        this.id = id;
-        this.label = label;
-    }
-    
-    public Integer getId()
-    {
-        return this.id;
-    }
-    
-    public void setId(Integer id)
-    {
-        this.id = id;
-    }
-    
-    public String getLabel()
-    {
-        return this.label;
-    }
-    
-    public void setLabel(String label)
-    {
-        this.label = label;
-    }    
-}
 
 
 
 public class GMLParser{
     
-    //Read file an return the conent as a string
+    //Read gml file an return the conent as a string
     public static String readFile(File file, Charset encoding) throws IOException {
        
         FileReader fr = new FileReader(file);
@@ -57,6 +34,7 @@ public class GMLParser{
 
     }
     
+    //compute the number of nodes of the graph
     private static int totalNode(StringTokenizer dag)
     {
         int countNode = 0;
@@ -71,6 +49,7 @@ public class GMLParser{
         
     }
     
+    //extract the number of processors from the GML DAG
     private static int totalProc(StringTokenizer dag)
     {
         int nbProc = 0;
@@ -87,9 +66,10 @@ public class GMLParser{
         
     }    
 
-    private static Float[][] costMatrix(Integer v,Integer proc,StringTokenizer dag)
+    //Extract the costmatrix from the gml DAG
+    private static float[][] costMatrix(Integer v,Integer proc,StringTokenizer dag)
     {
-            Float [][] costMatrix = new Float[v][proc];
+            float [][] costMatrix = new float[v][proc];
             char[] token;
             
             int countRow = 0;
@@ -190,8 +170,115 @@ public class GMLParser{
         return costMatrix;    
        
     }
+    
+    private static float costTask(int t,int p,float[][] costMatrix)
+    {
+        return costMatrix[t][p];
+    
+    }
+    
+    public static void writeToCSV(int[] myArray,Path file,float[][] costMatrix) throws IOException
+    {
+        String header = "Tache,Processeur,Temps execution";
+        StringBuffer sb = new StringBuffer(header+System.lineSeparator());
+        //Files.write(file, header.getBytes(),StandardOpenOption.APPEND);
+        
+	for(int i=0; i<myArray.length; i++)
+	{
+		String line = ""+i+","+myArray[i]+","+costTask(i,myArray[i],costMatrix)+System.lineSeparator();
+             
+                //sb.append(System.lineSeparator());
+                sb.append(line);
+                
+                //Files.write(file, text.getBytes(), StandardOpenOption.APPEND);
+              
+		
+	}
+        
+        Files.write(file, sb.toString().getBytes(), StandardOpenOption.APPEND);
+    }
 
+    
+    //Retrieve the communication matrix
+    
+    public static float[][] commMatrix(Integer V, ArrayList<StringBuffer> edges) 
+    {
 
+        float[][] commMat = new float[V][V];
+        //Initializing the matircie to 0
+        for(int v=0;v<=V-1;v++)
+             for(int w=0;w<=V-1;w++)
+                 commMat[v][w]=0.00000000f;
+
+        for(StringBuffer edge: edges)
+        {
+            String edge1 = edge.toString().replaceAll("\\s{2,}", " ").trim();
+
+            String[] tokens = edge1.split(" ");
+
+               // String token = st.nextToken();
+
+                int v = Integer.parseInt(tokens[1]);
+                int w = Integer.parseInt(tokens[3]);
+                commMat[v][w] = Float.parseFloat(tokens[5]);
+        }
+      
+        return commMat;
+    }    
+
+    //Retrive eges from GML file
+    
+    public static ArrayList<StringBuffer> collectEdges(char[] fileContent)
+    {
+           Stack<Character> myStack = new Stack<Character>(); 
+           Stack<StringBuffer> metaDataStack = new Stack<StringBuffer>();
+           Stack<StringBuffer> dataStack = new Stack<StringBuffer>();
+           
+           ArrayList<StringBuffer> nodes = new ArrayList<StringBuffer>();
+           ArrayList<StringBuffer> edges = new ArrayList<StringBuffer>();
+           
+           StringBuffer data = new StringBuffer();
+           for(char car : fileContent)
+           {
+               
+               
+               if(car == '[')
+               {
+                   metaDataStack.push(data);
+                   data = new StringBuffer();
+                   
+                   
+               }
+               else if(car == ']')
+               {
+                   StringBuffer metaData = metaDataStack.pop();
+                   //System.out.println("yest-"+metaData.toString().trim());
+                   if(metaData.toString().trim().equals("node"))
+                   {
+                        String text = data.toString().trim().replaceAll("\\r|\\n", "");
+                        data = new StringBuffer(text);
+                         dataStack.push(data);
+                         nodes.add(data);
+                   }
+                   if(metaData.toString().trim().equals("edge"))
+                   {
+                        String text = data.toString().trim().replaceAll("\\r|\\n", "");
+                        data = new StringBuffer(text);
+                         dataStack.push(data);
+                         edges.add(data);
+                   }                   
+                   data = new StringBuffer();
+               }
+               else 
+               {
+                   if(car!='\t')
+                    data.append(car);
+
+               }
+           } 
+           return edges;
+        
+    }
 
     /**
      * Returns a random simple graph containing {@code V} vertices and {@code E} edges.
@@ -233,31 +320,16 @@ public class GMLParser{
         return G;
     }
 
-//retruns the list of edges having v as source
-    public static ArrayList getVerticeEdge(int v,ArrayList<String> dag)
-    {
-            ArrayList<Integer> tab = new  ArrayList<Integer> ();
-            for(String token : dag) 
-            {
-                if(token.equals("edge"))
-                {
-                    int pos = dag.indexOf(token);
-                    int source = Integer.parseInt(dag.get(pos+2));
-                    int target = Integer.parseInt( dag.get(pos+4));
-                    if(v==source)
-                        tab.add(target);
 
-                } 
-                
-            }
-            return tab;
-    }
     public static void main(String args[])
     {
         //accept gml file name as argument
         String gmlFile = args[0];
         File myGmlFIle = new File(gmlFile);
         String content = null;
+        float[][] costMatrix;
+        
+        Path path = Paths.get("scheduledTasks.csv");
 
         try
         {
@@ -272,64 +344,36 @@ public class GMLParser{
            System.out.println("Total tasks/nodes: "+v);
            System.out.println("Total processors: "+p);
            StringTokenizer st2 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
-           System.out.println("yes "+costMatrix(v,p,st2)[3][5]);
+           
            // content = readFile(myGmlFIle, StandardCharsets.UTF_8);
            char[] contents = content.toCharArray();
-           Stack<Character> myStack = new Stack<Character>(); 
-           Stack<StringBuffer> metaDataStack = new Stack<StringBuffer>();
-           Stack<StringBuffer> dataStack = new Stack<StringBuffer>();
            
-           ArrayList<StringBuffer> nodes = new ArrayList<StringBuffer>();
-           ArrayList<StringBuffer> edges = new ArrayList<StringBuffer>();
+           ArrayList<StringBuffer> edges = collectEdges(contents);
            
-           StringBuffer data = new StringBuffer();
-           for(char car : contents)
-           {
-               
-               
-               if(car == '[')
-               {
-                   metaDataStack.push(data);
-                   data = new StringBuffer();
-                   
-                   
-               }
-               else if(car == ']')
-               {
-                   StringBuffer metaData = metaDataStack.pop();
-                   //System.out.println("yest-"+metaData.toString().trim());
-                   if(metaData.toString().trim().equals("node"))
-                   {
-                        String text = data.toString().trim().replaceAll("\\r|\\n", "");
-                        data = new StringBuffer(text);
-                         dataStack.push(data);
-                         nodes.add(data);
-                   }
-                   if(metaData.toString().trim().equals("edge"))
-                   {
-                        String text = data.toString().trim().replaceAll("\\r|\\n", "");
-                        data = new StringBuffer(text);
-                         dataStack.push(data);
-                         edges.add(data);
-                   }                   
-                   data = new StringBuffer();
-               }
-               else 
-               {
-                   if(car!='\t')
-                    data.append(car);
-
-               }
-           }
-           
-           System.out.println("Node size : "+nodes.size()+" Edges size : "+edges.size());
-           Graph myDag = parsedDag(nodes.size()+1,edges);
+           Graph myDag = parsedDag(v,edges);
            System.out.print("My Parsed DAG IS : \n"+myDag);
+           
+           StringTokenizer dag = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+           StringTokenizer dag1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+           costMatrix = costMatrix(v,p,dag);
+           PEFT peft = new PEFT(v,p,commMatrix(v,edges),costMatrix,myDag);
+           int[] peftScheduledList = peft.getScheduledList();
+           
+           Files.createFile(path);
+           
+           
+           
+           
+           System.out.println("yes yes   ....."+peftScheduledList.length);
+           writeToCSV(peftScheduledList,path,costMatrix);
+           
+          
             
         }
         catch(IOException ie)
         {
         }
+        
 
         
 
