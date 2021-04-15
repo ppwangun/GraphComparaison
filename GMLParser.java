@@ -357,15 +357,17 @@ public class GMLParser{
            StringTokenizer dag1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
            costMatrix = costMatrix(v,p,dag);
            PEFT peft = new PEFT(v,p,commMatrix(v,edges),costMatrix,myDag);
-           int[] peftScheduledList = peft.getScheduledList();
+           float mkspan = peft.makespan();
+          // int[] peftScheduledList = peft.getScheduledList();
            
-           Files.createFile(path);
+           //Files.createFile(path);
            
            
            
            
-           System.out.println("yes yes   ....."+peftScheduledList.length);
-           writeToCSV(peftScheduledList,path,costMatrix);
+          // System.out.println("yes yes   ....."+peftScheduledList.length);
+          // writeToCSV(peftScheduledList,path,costMatrix);
+          System.out.println("le MAKESPAN DE l'agorithme PEFT  "+mkspan);
            
           
             
