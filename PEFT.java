@@ -11,64 +11,69 @@ import java.util.Comparator;
 
 public class PEFT{
 
-private int P, V;
+private int P, V,entryNode,exitNode;
 private float[][] MatComm;
 private float[][] MatExeProc;
 private Graph G;
 
 
-	public PEFT(int V,int P,float[][] MatComm,float[][] MatExeProc,Graph G)
+	public PEFT(int V,int P,int entryNode,int exitNode,float[][] MatComm,float[][] MatExeProc,Graph G)
 	{
 		this.V = V;
 		this.P = P;
 		this.MatComm = MatComm;
 		this.MatExeProc = MatExeProc;
 		this.G = G;
+                this.entryNode = entryNode;
+                this.exitNode = exitNode;
 		
 	}
         
 	public  float makespan()
 	{
             float makespan=0;
-            ArrayList<Integer> readyList;
-            for(int level = 0;level <= this.level(V-1);level++)
+            ArrayList<Integer> readyList_1;
+            double [] octMatrix;
+            for(int level = 0;level <= this.level(this.V-1);level++)
             {
-                    readyList = readyList(V,level);
-                    makespan = this.levelMakespan(makespan,readyList);
+                    readyList_1 = this.readyList(this.V,level);
+                    octMatrix = this.octMatrix(this.MatExeProc, this.V, this.P);
+                    readyList_1 = this.sortReadyList(readyList_1,octMatrix);
+                    makespan += this.levelMakespan(readyList_1);
             }
 
             return makespan;
 	}        
 
-	public float levelMakespan(float makespan,ArrayList<Integer> readyList)
+	public float levelMakespan(ArrayList<Integer> readyList)
 	{
             int[] myArray = new int[this.V];
-            
+            this.EFT(this.V,this.P);
+            float[][] OEFT = this.OEFT(this.V,this.P);
+            float levelMakespan = 0;
+            float min = OEFT[0][0];
+            int proc = 0;
             for(int i=0;i<readyList.size();i++)
             {
                 Integer task = readyList.get(i);
-                this.EFT(this.V,this.P);
-                float[][] OEFT = this.OEFT(this.V,this.P);
-                float min = OEFT[task][0];
-                int proc = 0;
-                for(int j=1;j<OEFT[task].length;j++)
+                
+                for(int j=0;j<OEFT[task].length;j++)
                 {
-                    
-                        if(min>OEFT[task][j])
-                        {
-                                min=OEFT[task][j];
-                                proc = j;
-                        }
+                    if(min>OEFT[task][j])
+                    {
+                        min=OEFT[task][j];
+                        proc = j;
+                    }
                 }
                 //j'affecte à la tache i le processeur j;
                 myArray[i] = proc;
                 
-                if(makespan<MatExeProc[task][proc] )
-                    makespan = MatExeProc[task][proc];
+                if(levelMakespan<MatExeProc[task][proc] )
+                    levelMakespan = MatExeProc[task][proc];
 
             }
             
-            return makespan;
+            return levelMakespan;
             
 	}
         
@@ -90,29 +95,33 @@ private Graph G;
 	public  float OCT(int t,int p)
 	{
             float max=0;
-            //retourne 0 si la tache en cours corresponse à la tache de sortie
-            if(t==(this.V-1)) return 0;
-            if(this.G.adj[t].size()<=0) return 0;
-            for(int v:this.G.adj(t))
+            float min=0;
+            float tmp;
+            int proc = this.P-1;
+            //retourne 0 si la tache en cours corresponse à la tache de 
+           
+            if(t==this.exitNode) return 0;
+            
+            for(int v : this.G.adj[t])
             {
-
-                float min = OCT(v,0) + this.w(v,0) + this.c(t,v);
-
-
-                for(int proc=1; proc<this.P; proc++)
-                {
-
-                        float tmp = OCT(v,proc) + this.w(v,proc) + this.c(t,v); 
-                        if(min>tmp)
-                                min = tmp;
-
+                
+                min = this.OCT(v,0) + this.w(v,0) + this.c(t,v);
+                
+                while(proc>0)
+                { 
+                    tmp = this.OCT(v,proc) + this.w(v,proc) + this.c(t,v); 
+                    
+                    if(min>tmp)
+                        min = tmp;
+                    proc--;
+                    
                 }
-
+                t = v;
                 if(max<=min)
-                        max = min;
+                   max = min;
 
             }
-
+            
             return max;
 		
 	}
@@ -127,49 +136,46 @@ private Graph G;
 		return sum/this.P;
 	}
 	
-	public double[][] octMatrix(float[][] processorExeTime,int V, int P)
+	public double[] octMatrix(float[][] processorExeTime,int V,int P)
         {
-	
-            double[][] myArray= new double[V][P+1];
+	  
+            double[] myArray= new double[V];
             for(int v=0; v<V; v++)
             {
-                for(int p=0; p<= P; p++)
-                {
-                    if(p==P)
-                        myArray[v][p] = this.rankOCT(v);
-                    else
-
-                        myArray[v][p] = processorExeTime[v][p];
-
-                }
+                myArray[v] = this.rankOCT(v);
+  
             }
-                    return myArray;
+                return myArray;
 	}
 
 //Definir la liste des taches suivant l'ordre croissant de la valeur du paramètre rankOCT	
-    public ArrayList<Integer> sortReadyList(int[] readyList, double[][] octMatrix)
+    public ArrayList<Integer> sortReadyList(ArrayList<Integer>readyList,double[]octMatrix)
     {
         ArrayList<Integer>  myArray =  new ArrayList();
         int tache; double max;
 
         //Definir la tache d'entrée comme première tache de la liste
         
-        for(int k=0;k<readyList.length;k++)
+        for(int k=0;k<readyList.size();k++)
         {
-            max= octMatrix[k][octMatrix[k].length-1];
-            tache = k;
-            for(int i=k+1;i<octMatrix.length;i++)
+            tache = readyList.get(k);
+            max= octMatrix[tache];
+            for(int i=0;i<octMatrix.length;i++)
             {
-                if (myArray.contains(i)) continue;
-                if(max < octMatrix[i][octMatrix[i].length-1])
+                //if (myArray.contains(i)) continue;
+                if(max < octMatrix[i])
                 {
-                    max = octMatrix[i][octMatrix[i].length-1];
+                    
+                    max = octMatrix[i];
                     //octMatrix[i][octMatrix[i].length-1] = -1;
                     tache = i;
+                    
 
                 }
 
             }
+            readyList.set(k, tache);
+            octMatrix[tache] = -1;
             myArray.add(tache);
         }
 
@@ -209,7 +215,8 @@ private Graph G;
 	//temps de communication inter processeur nulle
 	public  int EST(int v, int p)
 	{
-                if (v == 0) return 0;
+            //return 0 for the entry node
+                if (v == this.entryNode) return 0;
 		int max = 0;
 		for(int w :this.G.pred(v))
 		{
@@ -223,7 +230,7 @@ private Graph G;
 	
 	public int level(int t)
 	{
-            if (t == 0) return 1;
+            if (t == this.entryNode) return 1;
             int max = 0;
             for(int v :this.G.pred(t))
             {
@@ -254,4 +261,6 @@ private Graph G;
 		
 	}
         
+        
+       
 }

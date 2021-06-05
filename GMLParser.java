@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import mygraph.Graph;
 import mygraph.SET;
 import mygraph.PEFT;
+import mygraph.Stack;
 import java.util.*;
 
 
@@ -319,6 +320,31 @@ public class GMLParser{
       
         return G;
     }
+    
+        private static int entryNode(Graph G,int V)
+        {
+            int entry = 0;
+            for(int i=0;i<V;i++)
+            {
+                if(
+                        G.pred[i].size()==0)
+                        return i;
+
+            }
+            return entry;
+        }
+        
+        private static int exitNode(Graph G,int V)
+        {
+            int exit = 0;
+            for(int i=0;i<V;i++)
+            {
+                if(G.adj[i].size()==0)
+                        return i;
+
+            }
+            return exit;
+        }     
 
 
     public static void main(String args[])
@@ -356,7 +382,12 @@ public class GMLParser{
            StringTokenizer dag = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
            StringTokenizer dag1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
            costMatrix = costMatrix(v,p,dag);
-           PEFT peft = new PEFT(v,p,commMatrix(v,edges),costMatrix,myDag);
+           
+           int entryNode = entryNode(myDag,v);
+           int exitNode = exitNode(myDag,v);
+           System.out.print("Entry node is  : "+entryNode+"\n");
+           System.out.print("Exit node is  : "+exitNode+"\n");
+           PEFT peft = new PEFT(v,p,entryNode,exitNode,commMatrix(v,edges),costMatrix,myDag);
            float mkspan = peft.makespan();
           // int[] peftScheduledList = peft.getScheduledList();
            
