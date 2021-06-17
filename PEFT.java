@@ -3,8 +3,11 @@
 package mygraph;
 
 import mygraph.Graph;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Comparator;
 
 
@@ -29,9 +32,9 @@ private Graph G;
 		
 	}
         
-	public  float makespan()
+	/*public  float makespan()
 	{
-            float makespan=0;
+            HashMap<Integer,Float> makespan = new HashMap<Integer,Float>() ;
             ArrayList<Integer> readyList_1;
             double [] octMatrix;
             for(int level = 0;level <= this.level(this.V-1);level++)
@@ -39,15 +42,35 @@ private Graph G;
                     readyList_1 = this.readyList(this.V,level);
                     octMatrix = this.octMatrix(this.MatExeProc, this.V, this.P);
                     readyList_1 = this.sortReadyList(readyList_1,octMatrix);
-                    makespan += this.levelMakespan(readyList_1);
+                    this.levelMakespan(readyList_1,makespan);
             }
+            Float  maxEntry = Collections.max(makespan.entrySet(), Map.Entry.comparingByValue()).getValue();
+            return maxEntry;
+	} */
+        
+        public float makespan()
+        {
+            int task = this.exitNode;
+            float[][] eft = this.EFT(this.V,this.P);
+            float[][] OEFT = this.OEFT(this.V,this.P);
+            float min = 0;
+            int proc = 0;
+                for(int j=0;j<OEFT[task].length;j++)
+                {
+                    if(min>OEFT[task][j])
+                    {
+                        min=OEFT[task][j];
+                        proc = j;
+                    }
+                }
 
-            return makespan;
-	}        
+               return  eft[task][proc];
+                     
+        }
 
-	public float levelMakespan(ArrayList<Integer> readyList)
+	public HashMap<Integer,Float> levelMakespan(ArrayList<Integer> readyList,HashMap<Integer,Float> myArray)
 	{
-            int[] myArray = new int[this.V];
+   
             this.EFT(this.V,this.P);
             float[][] OEFT = this.OEFT(this.V,this.P);
             float levelMakespan = 0;
@@ -65,15 +88,16 @@ private Graph G;
                         proc = j;
                     }
                 }
-                //j'affecte à la tache i le processeur j;
-                myArray[i] = proc;
-                
-                if(levelMakespan<MatExeProc[task][proc] )
-                    levelMakespan = MatExeProc[task][proc];
-
+                //j'affecte la tache i le processeur j;
+                Float currentCost = myArray.get(proc);
+                if(null != currentCost)
+                    myArray.put(proc,min+currentCost);
+                else myArray.put(proc,min);
             }
+           
+            //Object  maxEntry = Collections.max(myArray.entrySet(), Map.Entry.comparingByValue()).getKey();
             
-            return levelMakespan;
+            return myArray;
             
 	}
         
@@ -205,7 +229,7 @@ private Graph G;
 		{
 			for(int j=0;j<P;j++)
 			{
-				 myArray[i][j] =  EFT[i][j] + this.MatComm[i][j];
+				 myArray[i][j] =  EFT[i][j] + this.OCT(i,j);
 				
 			}
 		}
