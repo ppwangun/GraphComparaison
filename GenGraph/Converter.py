@@ -1,7 +1,7 @@
 from networkx import relabel_nodes, write_gml
 from numpy import random
 
-from help.FileReader import readFile
+from FileReader import readFile
 
 
 def listEntryNodes(g):
