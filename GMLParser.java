@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import mygraph.Graph;
 import mygraph.SET;
 import mygraph.PEFT;
+import mygraph.HEFT;
 import mygraph.Stack;
 import java.util.*;
 
@@ -68,9 +69,9 @@ public class GMLParser{
     }    
 
     //Extract the costmatrix from the gml DAG
-    private static float[][] costMatrix(Integer v,Integer proc,StringTokenizer dag)
+    private static double[][] costMatrix(Integer v,Integer proc,StringTokenizer dag)
     {
-            float [][] costMatrix = new float[v][proc];
+            double [][] costMatrix = new double[v][proc];
             char[] token;
             
             int countRow = 0;
@@ -94,7 +95,7 @@ public class GMLParser{
                             if(token[i]==']')
                             {
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString());                                
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString());                                
                                 countColumn = 0;
                                 break;
                             }
@@ -102,7 +103,7 @@ public class GMLParser{
                             { 
                                 
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString());
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString());
                                 countColumn++;
                                 break;
                             }
@@ -121,7 +122,7 @@ public class GMLParser{
                             {
                                 
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString()); 
                                 countColumn = 0;
                                 break;
                             }
@@ -129,7 +130,7 @@ public class GMLParser{
                             {
                                
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString()); 
                                 countColumn++;
                                 break;
                             }
@@ -147,7 +148,7 @@ public class GMLParser{
                                
                                 
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString()); 
                                 countColumn = 0;
                                 break;
                             }
@@ -155,7 +156,7 @@ public class GMLParser{
                             {
                                 
                                 if(countRow<v && countColumn < proc )
-                                    costMatrix[countRow][countColumn] = Float.parseFloat(sb.toString()); 
+                                    costMatrix[countRow][countColumn] = Double.parseDouble(sb.toString()); 
                                 countColumn++;
                                 break;
                             }
@@ -172,40 +173,54 @@ public class GMLParser{
        
     }
     
-    private static float costTask(int t,int p,float[][] costMatrix)
+    private static double costTask(int t,int p,double[][] costMatrix)
     {
         return costMatrix[t][p];
     
     }
     
-    public static void writeToCSV(int[] myArray,Path file,float[][] costMatrix) throws IOException
+    public static void writeToCSV(Path file,StringBuffer line) throws IOException
     {
-        String header = "Tache,Processeur,Temps execution";
-        StringBuffer sb = new StringBuffer(header+System.lineSeparator());
+ 
+       // String header = "SLR HEFT,SLR PEFT,Temps execution";
+        ///StringBuffer sb = new StringBuffer(line+System.lineSeparator());
         //Files.write(file, header.getBytes(),StandardOpenOption.APPEND);
         
-	for(int i=0; i<myArray.length; i++)
-	{
-		String line = ""+i+","+myArray[i]+","+costTask(i,myArray[i],costMatrix)+System.lineSeparator();
+
+		//String line = param1+","+param2+","+param3+System.lineSeparator();
              
                 //sb.append(System.lineSeparator());
-                sb.append(line);
+                //sb.append(line);
                 
                 //Files.write(file, text.getBytes(), StandardOpenOption.APPEND);
               
 		
-	}
+	
         
-        Files.write(file, sb.toString().getBytes(), StandardOpenOption.APPEND);
+        Files.write(file, line.toString().getBytes(), StandardOpenOption.APPEND);
+        /*FileWriter fw = new FileWriter("C:\\TP\\My_Project\\GraphComparaison\\scheduledTasks.csv", true);
+        BufferedWriter bw = new BufferedWriter(fw);
+        PrintWriter pw = new PrintWriter(bw); 
+        pw.println("Shane"); pw.println("Root"); pw.println("Ben");
+
+
+        pw.write("yeah man");
+        
+        pw.flush();
+        pw.close();
+                bw.close();
+                fw.close();*/
+          
+   
     }
 
     
     //Retrieve the communication matrix
     
-    public static float[][] commMatrix(Integer V, ArrayList<StringBuffer> edges) 
+    public static double[][] commMatrix(Integer V, ArrayList<StringBuffer> edges) 
     {
 
-        float[][] commMat = new float[V][V];
+        double[][] commMat = new double[V][V];
         //Initializing the matircie to 0
         for(int v=0;v<=V-1;v++)
              for(int w=0;w<=V-1;w++)
@@ -221,7 +236,7 @@ public class GMLParser{
 
                 int v = Integer.parseInt(tokens[1]);
                 int w = Integer.parseInt(tokens[3]);
-                commMat[v][w] = Float.parseFloat(tokens[5]);
+                commMat[v][w] = Double.parseDouble(tokens[5]);
         }
       
         return commMat;
@@ -350,65 +365,95 @@ public class GMLParser{
     public static void main(String args[])
     {
         //accept gml file name as argument
-        String gmlFile = args[0];
-        File myGmlFIle = new File(gmlFile);
-        String content = null;
-        float[][] costMatrix;
-        
-        Path path = Paths.get("scheduledTasks.csv");
 
         try
         {
-       
-            content = readFile(myGmlFIle,Charset.forName("ISO-8859-1"));
-            StringTokenizer st = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+            String header = "node;slrPeft;speedupPeft;exeTimePeft;slrHeft;speedupHeft,exetimeHeft";
+            StringBuffer sb = new StringBuffer(header+System.lineSeparator());
+            Path path = Paths.get("scheduledTasks.csv");            
+            for(int i=0;i<args.length;i++)
+            { System.out.println("length arguments"+args[i]);
+                String gmlFile = args[i];
+                File myGmlFIle = new File(gmlFile);
+                String content = null;
+                double[][] costMatrix;
+
+                content = readFile(myGmlFIle,Charset.forName("ISO-8859-1"));
+                StringTokenizer st = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+
+                int v = totalNode(st);
+                StringTokenizer st1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+                int p = totalProc(st1);
+
+               System.out.println("Total tasks/nodes: "+v);
+               System.out.println("Total processors: "+p);
+               StringTokenizer st2 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+
+               // content = readFile(myGmlFIle, StandardCharsets.UTF_8);
+               char[] contents = content.toCharArray();
+
+               ArrayList<StringBuffer> edges = collectEdges(contents);
+
+               Graph myDag = parsedDag(v,edges);
+               //System.out.print("My Parsed DAG IS : \n"+myDag);
+
+               StringTokenizer dag = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+               StringTokenizer dag1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
+               costMatrix = costMatrix(v,p,dag);
+
+               int entryNode = entryNode(myDag,v);
+               int exitNode = exitNode(myDag,v);
+               System.out.print("Entry node is  : "+entryNode+"\n");
+               System.out.print("Exit node is  : "+exitNode+"\n");
+
+
+               HEFT heft = new HEFT(v,p,entryNode,exitNode,commMatrix(v,edges),costMatrix,myDag);
+
+
+               int[] heftScheduledList = heft.schedulingList();
+               heft.makeSchedule(heftScheduledList );
+               double slrHeft = heft.slr();
+               double speedupHeft = heft.speedup();
+               double exeTimeHeft = heft.exeTime();
+
+               
+
+
+
+
+              // System.out.println("yes yes   ....."+peftScheduledList.length);
+              // writeToCSV(peftScheduledList,path,costMatrix);
+
+              //System.out.println("le MAKESPAN DE l'agorithme HEFT  "+mkspanHeft);
+
+               PEFT peft = new PEFT(v,p,entryNode,exitNode,commMatrix(v,edges),costMatrix,myDag);
+               //int[] peftScheduledList = peft.schedulingList();
+                peft.makeSchedule();
+                double slrPeft = peft.slr();
+                double speedupPeft = peft.speedup();
+                double exeTimePeft = peft.exeTime();
+                double exeTime = 0.0;
+
+
+              
+                System.out.println("le MAKESPAN DE l'agorithme PEFT  "+speedupPeft);
+                System.out.println("le MAKESPAN DE l'agorithme HEFT  "+speedupHeft);
+                
+                 String line = v+";"+slrPeft+";"+speedupPeft+";"+exeTimePeft+";"+slrHeft+";"+speedupHeft+";"+exeTimeHeft+System.lineSeparator();
+                sb =  sb.append(line);
+
+            }
             
-            int v = totalNode(st);
-            StringTokenizer st1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
-            int p = totalProc(st1);
-           
-           System.out.println("Total tasks/nodes: "+v);
-           System.out.println("Total processors: "+p);
-           StringTokenizer st2 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
-           
-           // content = readFile(myGmlFIle, StandardCharsets.UTF_8);
-           char[] contents = content.toCharArray();
-           
-           ArrayList<StringBuffer> edges = collectEdges(contents);
-           
-           Graph myDag = parsedDag(v,edges);
-           System.out.print("My Parsed DAG IS : \n"+myDag);
-           
-           StringTokenizer dag = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
-           StringTokenizer dag1 = new StringTokenizer(content.toString().trim().replaceAll("\\r|\\n", " "));
-           costMatrix = costMatrix(v,p,dag);
-           
-           int entryNode = entryNode(myDag,v);
-           int exitNode = exitNode(myDag,v);
-           System.out.print("Entry node is  : "+entryNode+"\n");
-           System.out.print("Exit node is  : "+exitNode+"\n");
-           PEFT peft = new PEFT(v,p,entryNode,exitNode,commMatrix(v,edges),costMatrix,myDag);
-           float mkspan = peft.makespan();
-          // int[] peftScheduledList = peft.getScheduledList();
-           
-           //Files.createFile(path);
-           
-           
-           
-           
-          // System.out.println("yes yes   ....."+peftScheduledList.length);
-          // writeToCSV(peftScheduledList,path,costMatrix);
-          System.out.println("le MAKESPAN DE l'agorithme PEFT  "+mkspan);
-           
-          
-            
+            Files.createFile(path);
+            writeToCSV(path,sb);
+        
+
         }
         catch(IOException ie)
         {
-        }
-        
-
-        
+            System.out.println(ie);
+            
+        }        
 
     }
 }

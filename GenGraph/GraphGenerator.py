@@ -1,7 +1,7 @@
 import os
 
-from Converter import igraphToNetworkX
-from recursiveGenLength import executionL
+from help.Converter import igraphToNetworkX
+from help.recursiveGenLength import executionL
 
 
 def genGraph(length, depth, filename, sdComp, sdComm, CCR, nbproc):
